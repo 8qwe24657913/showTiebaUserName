@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.3
+// @version      0.4
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -28,6 +28,9 @@
 .card_userinfo_title .userinfo_username, .card_userinfo_title .userinfo_username:hover {
     max-width: max-content!important;
 }
+.userinfo_username + div[style]:not([class]):not([id]), img[src="//tb1.bdstatic.com/tb/cms/nickemoji/nickname_sign.png"] {
+    display: none!important;
+}
 `;
     var style = document.createElement('style');
     style.appendChild(document.createTextNode(css));
@@ -51,7 +54,7 @@
         var node = target;
         while (!node.hasAttribute('data-field')) node = node.parentElement;
         var un = JSON.parse(node.getAttribute('data-field')).un,
-            nickname = target.textContent;
-        if (nickname !== un) target.textContent = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
+            nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
+        if (nickname !== un) target.innerHTML = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
     }, false);
 })();
