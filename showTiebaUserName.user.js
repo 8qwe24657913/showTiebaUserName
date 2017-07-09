@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.6
+// @version      0.7
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
 // @match        http://tieba.baidu.com/*
 // @match        https://tieba.baidu.com/*
 // @run-at       document-start
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
 // ==/UserScript==
 (function() {
     'use strict';
@@ -36,12 +37,12 @@
     style.appendChild(document.createTextNode(css));
     document.documentElement.appendChild(style);
     // add setting
-    var setting = localStorage.showUNSetting || '${un} (${nickname})';
+    var setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
 
     function changeSetting() {
         var newSetting = prompt('${un}表示真实ID，${nickname}表示昵称', setting);
         if (newSetting && newSetting !== setting) {
-            localStorage.showUNSetting = newSetting;
+            GM_setValue('showUNSetting', newSetting);
             location.reload();
         }
     }
@@ -51,17 +52,24 @@
         return elem ? elem.getAttribute(attr) : false;
     }
     // main
-    document.addEventListener('animationstart', function(event) { // shouldn't use jQuery, bacause it may not be loaded
+    document.addEventListener('animationstart', function(event) { // shouldn't use jQuery
         if (event.animationName !== 'showUserName') return;
         var target = event.target;
         target.classList.add('shownUN');
-        if (target.nodeName === 'UL') return $('<li class="u_showUN"><a href="javascript:">显ID设置</a></li>').on('click', changeSetting).appendTo(target); // jQuery is loaded here
-        var field = closestAttr(target, 'data-field'), un;
+        if (target.nodeName === 'UL') { // 设置按钮
+            target.insertAdjacentHTML('beforeend', '<li class="u_showUN"><a href="javascript:">显ID设置</a></li>');
+            target.getElementsByClassName('u_showUN')[0].addEventListener('click', changeSetting, false);
+            return;
+        }
+        var un, field = closestAttr(target, 'data-field');
         if (field) { // frs & pb & card
             un = JSON.parse(field).un;
         } else if (typeof PageData === 'object' && PageData.product === 'ihome') { // ihome
             un = target.nextElementSibling.getAttribute('data-username');
-        } else { // unknown
+        } else if (target.href) { // unknown, trying to parse href
+            console.warn('贴吧显示真实ID: 尝试解析未知元素', target);
+            un = new URLSearchParams(target.href.split('?')[1]).get('un');
+        } else { // can't find un
             return console.error('贴吧显示真实ID: 找不到真实ID', target);
         }
         var nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
