@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.8
+// @version      0.9
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -22,7 +22,7 @@
         clip: rect(0px, auto, auto, auto);
     }
 }
-.frs-author-name:not(.shownUN), .p_author_name:not(.shownUN), .userinfo_username:not(.shownUN), #j_u_username .u_ddl_con_top > ul:not(.shownUN) {
+.frs-author-name:not(.shownUN), .p_author_name:not(.shownUN), .userinfo_username:not(.shownUN), .lzl_cnt > .at, #j_u_username .u_ddl_con_top > ul:not(.shownUN) {
     animation-duration: 0.001s;
     animation-name: showUserName;
 }
@@ -67,7 +67,7 @@
         var un, nickname, data = closestAttr(target, 'data-field');
         // 获取 un
         if (data) { // frs & pb & card
-            un = JSON.parse(data).un;
+            un = JSON.parse(data.replace(/'/g, '"')).un; // 贴吧的畸形JSON用的是单引号，姑且先用replace凑合
         } else if (location.pathname.startsWith('/home/')) { // ihome
             un = target.nextElementSibling.getAttribute('data-username');
         } else if (target.href) { // unknown, trying to parse href
