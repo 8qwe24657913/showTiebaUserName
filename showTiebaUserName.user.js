@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.7
+// @version      0.8
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -32,6 +32,9 @@
 .userinfo_username + div[style]:not([class]):not([id]), img[src="//tb1.bdstatic.com/tb/cms/nickemoji/nickname_sign.png"] {
     display: none!important;
 }
+.frs-author-name > div[style*="color"], .userinfo_username > div[style*="color"] {
+    color: inherit!important;
+}
 `;
     var style = document.createElement('style');
     style.appendChild(document.createTextNode(css));
@@ -40,7 +43,7 @@
     var setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
 
     function changeSetting() {
-        var newSetting = prompt('${un}表示真实ID，${nickname}表示昵称', setting);
+        var newSetting = prompt('${un}表示真实ID，${nickname}表示昵称，可使用html标签', setting);
         if (newSetting && newSetting !== setting) {
             GM_setValue('showUNSetting', newSetting);
             location.reload();
@@ -61,10 +64,11 @@
             target.getElementsByClassName('u_showUN')[0].addEventListener('click', changeSetting, false);
             return;
         }
-        var un, field = closestAttr(target, 'data-field');
-        if (field) { // frs & pb & card
-            un = JSON.parse(field).un;
-        } else if (typeof PageData === 'object' && PageData.product === 'ihome') { // ihome
+        var un, nickname, data = closestAttr(target, 'data-field');
+        // 获取 un
+        if (data) { // frs & pb & card
+            un = JSON.parse(data).un;
+        } else if (location.pathname.startsWith('/home/')) { // ihome
             un = target.nextElementSibling.getAttribute('data-username');
         } else if (target.href) { // unknown, trying to parse href
             console.warn('贴吧显示真实ID: 尝试解析未知元素', target);
@@ -72,11 +76,14 @@
         } else { // can't find un
             return console.error('贴吧显示真实ID: 找不到真实ID', target);
         }
-        var nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
-        if (nickname.endsWith('...') && target.classList.contains('frs-author-name')) { // frs 用户名被切掉的情况
+        // 获取 nickname
+        if (target.classList.contains('frs-author-name')) { // frs 用户名可能被切掉，统一不用图片，保证格式美观
             nickname = closestAttr(target.parentElement, 'title').split(' ')[1];
-            if (nickname === un) target.textContent = nickname; // 尽量显示完整
+            if (nickname === un) target.textContent = nickname; // 用户名尽量显示完整，不用图片
+        } else { // pb & card & ihome
+            nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
         }
+        // 修改显示内容
         if (nickname !== un) target.innerHTML = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
     }, false);
 })();
