@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.9
+// @version      0.10
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -29,7 +29,7 @@
 .card_userinfo_title .userinfo_username, .card_userinfo_title .userinfo_username:hover {
     max-width: 100%!important;
 }
-.userinfo_username + div[style]:not([class]):not([id]), img[src="//tb1.bdstatic.com/tb/cms/nickemoji/nickname_sign.png"] {
+.userinfo_username + div[style]:not([class]):not([id]), img[src="//tb1.bdstatic.com/tb/cms/nickemoji/nickname_sign.png"], .card_userinfo_tbvip {
     display: none!important;
 }
 .frs-author-name > div[style*="color"], .userinfo_username > div[style*="color"] {
@@ -84,6 +84,10 @@
             nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
         }
         // 修改显示内容
-        if (nickname !== un) target.innerHTML = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
+        if (nickname !== un) {
+            var html = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
+            if (!(target.classList.contains('p_author_name') || data && target.classList.contains('userinfo_username'))) html = html.replace(/<br[^>]*>/g, ' '); // 仅 pb & card 适合换行，不适合的地方replace成空格
+            target.innerHTML = html;
+        }
     }, false);
 })();
