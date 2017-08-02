@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.10
+// @version      0.11
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -83,8 +83,11 @@
         } else { // pb & card & ihome
             nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
         }
+        nickname = nickname.trim();
         // 修改显示内容
-        if (nickname !== un) {
+        if (nickname === '') {
+            target.textContent = un;
+        } else if (nickname !== un) {
             var html = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
             if (!(target.classList.contains('p_author_name') || data && target.classList.contains('userinfo_username'))) html = html.replace(/<br[^>]*>/g, ' '); // 仅 pb & card 适合换行，不适合的地方replace成空格
             target.innerHTML = html;
