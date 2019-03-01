@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.12
+// @version      0.13
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -22,7 +22,7 @@
         clip: rect(0px, auto, auto, auto);
     }
 }
-.frs-author-name:not(.shownUN), .p_author_name:not(.shownUN), .userinfo_username:not(.shownUN), .lzl_cnt > .at, #j_u_username .u_ddl_con_top > ul:not(.shownUN) {
+.frs-author-name:not(.shownUN), .p_author_name:not(.shownUN), .userinfo_username:not(.shownUN), .lzl_cnt > .at:not(.shownUN), .lzl_content_main > .at:not(.shownUN), #j_u_username .u_ddl_con_top > ul:not(.shownUN) {
     animation-duration: 0.001s;
     animation-name: showUserName;
 }
@@ -36,14 +36,14 @@
     color: inherit!important;
 }
 `;
-    var style = document.createElement('style');
+    let style = document.createElement('style');
     style.appendChild(document.createTextNode(css));
     document.documentElement.appendChild(style);
     // add setting
-    var setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
+    let setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
 
     function changeSetting() {
-        var newSetting = prompt('${un}表示真实ID，${nickname}表示昵称，可使用html标签', setting);
+        let newSetting = prompt('${un}表示真实ID，${nickname}表示昵称，可使用html标签', setting);
         if (newSetting && newSetting !== setting) {
             GM_setValue('showUNSetting', newSetting);
             location.reload();
@@ -57,16 +57,22 @@
     // main
     document.addEventListener('animationstart', function(event) { // shouldn't use jQuery
         if (event.animationName !== 'showUserName') return;
-        var target = event.target;
+        let target = event.target;
         target.classList.add('shownUN');
         if (target.nodeName === 'UL') { // 设置按钮
             target.insertAdjacentHTML('beforeend', '<li class="u_showUN"><a href="javascript:">显ID设置</a></li>');
             target.getElementsByClassName('u_showUN')[0].addEventListener('click', changeSetting, false);
             return;
         }
-        var un, nickname, data = closestAttr(target, 'data-field');
+        let un, nickname, data, hack = false;
         // 获取 un
-        if (data) { // frs & pb & card
+        if (target.hasAttribute('username') && target.getAttribute('onmouseover') === 'showattip(this)') {
+            hack = true;
+            un = target.getAttribute('username');
+            try {
+                un = decodeURIComponent(un);
+            } catch (e) {}
+        } else if (data = closestAttr(target, 'data-field')) { // frs & pb & card
             un = JSON.parse(data.replace(/'/g, '"')).un; // 贴吧的畸形JSON用的是单引号，姑且先用replace凑合
         } else if (location.pathname.startsWith('/home/')) { // ihome
             un = document.getElementsByClassName('user_name')[0].firstChild.textContent.match(/用户名:(\S+)/)[1]; //target.nextElementSibling.getAttribute('data-username');
@@ -85,10 +91,17 @@
         }
         nickname = nickname.trim();
         // 修改显示内容
+        if (hack) { // showattip 函数写的过于制杖，不开这脚本都显示不出来……似乎还和帖子有关，测试贴 http://tieba.baidu.com/p/6051286922 感谢 @谷歌大法好 的反馈
+            Object.defineProperty(target, 'textContent', {
+                get() {
+                    return un;
+                }
+            })
+        }
         if (nickname === '') {
             target.textContent = un;
         } else if (nickname !== un) {
-            var html = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
+            let html = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
             if (!(target.classList.contains('p_author_name') || data && target.classList.contains('userinfo_username'))) html = html.replace(/<br[^>]*>/g, ' '); // 仅 pb & card 适合换行，不适合的地方replace成空格
             target.innerHTML = html;
         }
