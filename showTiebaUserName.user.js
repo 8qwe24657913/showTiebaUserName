@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.14
+// @version      0.15
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -9,6 +9,7 @@
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // ==/UserScript==
 (function() {
     'use strict';
@@ -49,6 +50,7 @@
             location.reload();
         }
     }
+    GM_registerMenuCommand('设置贴吧显示真实ID格式', changeSetting);
 
     function closestAttr(elem, attr) {
         while (elem && !elem.hasAttribute(attr)) elem = elem.parentElement;
