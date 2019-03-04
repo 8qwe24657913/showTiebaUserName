@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.13
+// @version      0.14
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -54,6 +54,15 @@
         while (elem && !elem.hasAttribute(attr)) elem = elem.parentElement;
         return elem ? elem.getAttribute(attr) : false;
     }
+
+    function decodeURL(str) {
+        try { // decode utf-8
+            return decodeURIComponent(str);
+        } catch (e) { // decode gbk
+            let decoder = new TextDecoder('gbk');
+            return str.replace(/(?:%[A-Z0-9]{2})+/ig, s => decoder.decode(new Uint8Array(s.substr(1).split('%').map(c => parseInt(c, 16)))));
+        }
+    }
     // main
     document.addEventListener('animationstart', function(event) { // shouldn't use jQuery
         if (event.animationName !== 'showUserName') return;
@@ -67,11 +76,14 @@
         let un, nickname, data, hack = false;
         // 获取 un
         if (target.hasAttribute('username') && target.getAttribute('onmouseover') === 'showattip(this)') {
+            // 贴吧最近又在乱改，一会回复显示id，一会回复显示昵称，一会id不编码，一会id utf-8编码，一会id gbk编码……
             hack = true;
             un = target.getAttribute('username');
-            try {
-                un = decodeURIComponent(un);
-            } catch (e) {}
+            if (/%[A-Z0-9]{2}/i.test(un)) { // url encoded
+                try {
+                    un = decodeURL(un);
+                } catch (e) {}
+            }
         } else if (data = closestAttr(target, 'data-field')) { // frs & pb & card
             un = JSON.parse(data.replace(/'/g, '"')).un; // 贴吧的畸形JSON用的是单引号，姑且先用replace凑合
         } else if (location.pathname.startsWith('/home/')) { // ihome
