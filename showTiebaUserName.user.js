@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.15
+// @version      0.17
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -11,10 +11,10 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
-(function() {
+(function () {
     'use strict';
     // add css
-    var css = `
+    const css = `
 @keyframes showUserName {
     from {
         clip: rect(1px, auto, auto, auto);
@@ -37,14 +37,14 @@
     color: inherit!important;
 }
 `;
-    let style = document.createElement('style');
+    const style = document.createElement('style');
     style.appendChild(document.createTextNode(css));
     document.documentElement.appendChild(style);
     // add setting
-    let setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
+    const setting = GM_getValue('showUNSetting', localStorage.showUNSetting || '${un} (${nickname})');
 
     function changeSetting() {
-        let newSetting = prompt('${un}表示真实ID，${nickname}表示昵称，可使用html标签', setting);
+        const newSetting = prompt('${un}表示真实ID，${nickname}表示昵称，可使用html标签', setting);
         if (newSetting && newSetting !== setting) {
             GM_setValue('showUNSetting', newSetting);
             location.reload();
@@ -61,21 +61,22 @@
         try { // decode utf-8
             return decodeURIComponent(str);
         } catch (e) { // decode gbk
-            let decoder = new TextDecoder('gbk');
+            const decoder = new TextDecoder('gbk');
             return str.replace(/(?:%[A-Z0-9]{2})+/ig, s => decoder.decode(new Uint8Array(s.substr(1).split('%').map(c => parseInt(c, 16)))));
         }
     }
     // main
-    document.addEventListener('animationstart', function(event) { // shouldn't use jQuery
+    document.addEventListener('animationstart', event => { // shouldn't use jQuery
         if (event.animationName !== 'showUserName') return;
-        let target = event.target;
+        const target = event.target;
         target.classList.add('shownUN');
         if (target.nodeName === 'UL') { // 设置按钮
             target.insertAdjacentHTML('beforeend', '<li class="u_showUN"><a href="javascript:">显ID设置</a></li>');
             target.getElementsByClassName('u_showUN')[0].addEventListener('click', changeSetting, false);
             return;
         }
-        let un, nickname, data, hack = false;
+        let un, nickname, data, hack = false,
+            isAt = false;
         // 获取 un
         if (target.hasAttribute('username') && target.getAttribute('onmouseover') === 'showattip(this)') {
             // 贴吧最近又在乱改，一会回复显示id，一会回复显示昵称，一会id不编码，一会id utf-8编码，一会id gbk编码……
@@ -104,20 +105,24 @@
             nickname = target.innerHTML.replace(/^<div[^>]*>(.*)<\/div>$/, '$1').replace(/<img src="\/\/tb1\.bdstatic\.com\/tb\/cms\/nickemoji\/nickname_sign\.png"[^>]*>/, '');
         }
         nickname = nickname.trim();
+        if (nickname.startsWith('@')) {
+            isAt = true;
+            nickname = nickname.slice(1)
+        }
         // 修改显示内容
         if (hack) { // showattip 函数写的过于制杖，不开这脚本都显示不出来……似乎还和帖子有关，测试贴 http://tieba.baidu.com/p/6051286922 感谢 @谷歌大法好 的反馈
             Object.defineProperty(target, 'textContent', {
                 get() {
                     return un;
-                }
+                },
             })
         }
-        if (nickname === '') {
+        if (!nickname) {
             target.textContent = un;
-        } else if (nickname !== un) {
+        } else if (un && un !== 'null' && nickname !== un && nickname !== ('@' + un)) {
             let html = setting.replace(/\${un}/g, un).replace(/\${nickname}/g, nickname);
             if (!(target.classList.contains('p_author_name') || data && target.classList.contains('userinfo_username'))) html = html.replace(/<br[^>]*>/g, ' '); // 仅 pb & card 适合换行，不适合的地方replace成空格
-            target.innerHTML = html;
+            target.innerHTML = (isAt ? '@' : '') + html;
         }
     }, false);
-})();
+}());
