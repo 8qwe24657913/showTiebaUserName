@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         贴吧显示真实ID
-// @version      0.17
+// @version      0.18
 // @namespace    https://github.com/8qwe24657913
 // @description  贴吧昵称掩盖了真实ID，认不出人了？这个脚本适合你
 // @author       8qwe24657913
@@ -10,8 +10,9 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
 // ==/UserScript==
-/* globals GM_getValue GM_setValue GM_registerMenuCommand */
+/* globals GM_getValue GM_setValue GM_registerMenuCommand unsafeWindow */
 // eslint-disable-next-line no-extra-semi
 ;(function() {
     'use strict'
@@ -116,8 +117,15 @@
                 // frs & pb & card
                 un = JSON.parse(data.replace(/'/g, '"')).un // 贴吧的畸形JSON用的是单引号，姑且先用replace凑合
             } else if (location.pathname.startsWith('/home/')) {
-                // ihome
-                un = document.getElementsByClassName('user_name')[0].firstChild.textContent.match(/用户名:(\S+)/)[1] // target.nextElementSibling.getAttribute('data-username');
+                // ihome 百度取消了真实用户名显示
+                if (!un) {
+                    try {
+                        un = unsafeWindow.PageData.current_page_uname
+                        throw new Error("can't get un from PageData")
+                    } catch (e) {
+                        un = new URLSearchParams(location.search).get('un')
+                    }
+                }
             } else if (target.href) {
                 // unknown, trying to parse href
                 console.warn('贴吧显示真实ID: 尝试解析未知元素', target)
